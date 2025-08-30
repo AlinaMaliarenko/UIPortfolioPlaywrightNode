@@ -7,7 +7,6 @@ import Person from "../model/types";
 
 export default class ShippingAddressPage extends BasePage {
     private readonly shippingUrl = "/checkout/#shipping";
-    private readonly shippingAddressForm: Locator;
     private readonly emailInputField: Locator;
     private readonly firstNameInputField: Locator;
     private readonly lastNameInputField: Locator;
@@ -23,18 +22,20 @@ export default class ShippingAddressPage extends BasePage {
 
     constructor(page: Page) {
         super(page);
-        this.emailInputField = page.locator('#customer-email-fieldset input[type="email"]');
-        this.shippingAddressForm = page.locator('#shipping-new-address-form');
-        this.firstNameInputField = this.shippingAddressForm.locator('[name="shippingAddress.firstname"] input');
-        this.lastNameInputField = this.shippingAddressForm.locator('[name="shippingAddress.lastname"] input');
-        this.streetInputField = this.shippingAddressForm.locator('[name="shippingAddress.street.0"] input');
-        this.cityInputField = this.shippingAddressForm.locator('[name="shippingAddress.city"] input');
-        this.regionDropDown = this.shippingAddressForm.locator('[name="shippingAddress.region_id"] select');
-        this.countryDropDown = this.shippingAddressForm.locator('[name="shippingAddress.country_id"] select');
-        this.zipInputField = this.shippingAddressForm.locator('[name="shippingAddress.postcode"] input');
-        this.phoneInputField = this.shippingAddressForm.locator('[name="shippingAddress.telephone"] input');
-        this.methodBestWay = page.locator('//*input[value="tablerate_bestway"]');
-        this.methodBestWayPrice = this.methodBestWay.locator(`/parent::*//*[@class="price"][not(span)]`);
+        this.emailInputField = page.getByRole('textbox', { name: 'Email Address * Email Address' });
+        this.firstNameInputField = page.getByRole('textbox', { name: 'First Name *' });
+        this.lastNameInputField = page.getByRole('textbox', { name: 'Last Name *' });
+        this.streetInputField = page.getByRole('textbox', { name: 'Street Address: Line 1' });
+        this.cityInputField = page.getByRole('textbox', { name: 'City *' });
+        this.regionDropDown = page.locator('select[name="region_id"]');
+        this.countryDropDown = page.locator('select[name="country_id"]');
+        this.zipInputField = page.getByRole('textbox', { name: 'Zip/Postal Code *' });
+        this.phoneInputField = page.getByRole('textbox', { name: 'Phone Number *' });
+        this.methodBestWay = page.getByRole('radio', { name: 'Table Rate Best Way' });
+        this.methodBestWayPrice = this.methodBestWay
+            .locator("..")
+            .locator(":scope +td")
+            .locator(".price .price");
         this.nextButton = page.getByRole('button', { name: "Next" });
     }
 
@@ -78,7 +79,7 @@ export default class ShippingAddressPage extends BasePage {
                 await this.regionDropDown.selectOption({ label: value })
             } else {
                 await this.fillInField(fieldMap[key as keyof Person], value)
-            }
+            };
 
             // Static country check
             await expect(this.countryDropDown).toHaveValue('US');
@@ -87,10 +88,7 @@ export default class ShippingAddressPage extends BasePage {
 
     async selectShippingMethodBestWay(): Promise<number> {
         const priceText = await this.methodBestWayPrice.innerText();
-        const match = priceText.match(/\$([\d.]+)/);
-        if (!match) throw new Error("Could not parse shipping price");
-        console.log(`match : ${match}; ${match[0]} and ${match[1]}`);
-        const shippingPrice = parseFloat(match[1]);
+        const shippingPrice = parseFloat(priceText.replace(/[^0-9.]/g, ""));
         await this.methodBestWay.click();
         return shippingPrice;
     }
@@ -103,5 +101,4 @@ export default class ShippingAddressPage extends BasePage {
     async verifyShippingPageUrl(): Promise<void> {
         await this.verifyPageURL(this.shippingUrl);
     }
-
 }
